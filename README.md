@@ -1,5 +1,5 @@
 # Py2048
-A 2048 game written on Python using the Pyglet library
+A 2048 game written on Python using the Pyglet library.
 
 ![Game preview](./image.png)
 ### Dependencies
@@ -61,3 +61,6 @@ uv run 2048.py
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Credits
+Font: [Not Jam Slab 14](https://not-jam.itch.io/not-jam-slab-serif-11) by Not Jam - licensed under CC0
