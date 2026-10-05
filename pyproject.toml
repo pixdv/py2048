@@ -1,0 +1,10 @@
+[project]
+name = "py2048"
+version = "0.1.0"
+description = "Python 2048 game"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.14"
+dependencies = [
+    "pyglet>=2.1.16",
+]
