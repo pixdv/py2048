@@ -103,7 +103,7 @@ no_button_text_size = 36 * scale
 
 
 # font configuration
-pyglet.font.add_file("Not Jam UI 12.ttf")
+pyglet.font.add_file("NotJamUI12.ttf")
 NotJamUI12 = pyglet.font.load("Not Jam UI 12")
 font_name = "Not Jam UI 12"
 
