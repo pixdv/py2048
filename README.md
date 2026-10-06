@@ -45,7 +45,7 @@ python3 2048.py
 ```
 uv run 2048.py
 ```
-> you don't need to create virtual environment and install pyglet if you using uv, just run the game
+> you don't need to create virtual environment and manually install pyglet if you using uv, just run the game
 
 **or with the tool you chose**
 
