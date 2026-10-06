@@ -12,7 +12,7 @@ A 2048 game written on Python using the Pyglet library.
 git clone https://github.com/pixdv/py2048
 cd py2048
 ```
-### 2. Create and activate virtual enviroment
+### 2. Create and activate virtual environment
 
 **venv**
 ```
@@ -45,6 +45,8 @@ python3 2048.py
 ```
 uv run 2048.py
 ```
+> you don't need to create virtual environment and install pyglet if you using uv, just run the game
+
 **or with the tool you chose**
 
 ## How to play
