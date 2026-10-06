@@ -27,20 +27,12 @@ python3 -m venv .venv
 ```
 > for Windows
 
-**or uv**
-```
-uv init
-```
 **or any other tool**
 
 ### 3. Install pyglet
 **venv**
 ```
 pip install pyglet
-```
-**uv**
-```
-uv add pyglet
 ```
 **or with the tool you chose**
 
@@ -63,4 +55,4 @@ uv run 2048.py
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Credits
-Font: [Not Jam Slab 14](https://not-jam.itch.io/not-jam-slab-serif-11) by Not Jam - licensed under CC0
+Font: [Not Jam UI 12](https://not-jam.itch.io/not-jam-ui-12) by Not Jam - licensed under CC0
