@@ -1,9 +1,7 @@
 import pyglet
 from pyglet import shapes
 from pyglet import gl
-from pyglet import font
 from pyglet.window import key, mouse
-from pyglet.font.user import UserDefinedMappingFont
 from random import randint
 from itertools import chain
 
@@ -12,19 +10,21 @@ window_width = 600
 window_height = 800
 window_title = "Py2048"
 window_bg = (220, 225, 250, 255)
+window = pyglet.window.Window(window_width, window_height, caption=window_title, resizable=False)
 
+# scaling
+scale = window.get_pixel_ratio()
 
 # field configuration
-field_width, field_height = 500*2, 500*2
-field_x = window_width - field_width // 2
-field_y = window_height - field_height//2
+field_width, field_height = 500*scale, 500*scale
+field_x = (window_width*scale - field_width) // 2
+field_y = (window_height*scale - field_height) // 2
 field_color = (146, 163, 247)
 
 
 # tiles configuration
 x_tiles, y_tiles = 4, 4
-tile_width, tile_height = 113*2, 113*2
-tile_x_gap, tile_y_gap = 19.2*(4/x_tiles), 19.2*(4/y_tiles)
+tile_x_gap, tile_y_gap = 9.6*(4/x_tiles)*scale, 9.6*(4/y_tiles)*scale
 tile_width, tile_height = (field_width-(tile_x_gap*(x_tiles+1)))/x_tiles, (field_height-(tile_y_gap*(y_tiles+1)))/y_tiles
 tile_color = (208, 214, 247)
 tiles_cords = [[] for _ in range(x_tiles)]
@@ -47,16 +47,16 @@ moves = {
 
 # score
 score = 0
-score_x = field_x + 75//3
-score_y = field_y - 75
+score_x = field_x + 75//6*scale
+score_y = field_y - 37.5*scale
 score_color = (133, 151, 242)
-score_font_size = 72
+score_font_size = 36*scale
 
 # title
 title = window_title
-title_x = window_width
-title_y = (window_height*2 - (window_height*2 - (field_y + field_height)) // 2)
-title_font_size = 118
+title_x = window_width // (2 / scale)
+title_y = (window_height*scale - (window_height*scale - (field_y + field_height)) // 2)
+title_font_size = 59 * scale
 title_color = (81, 105, 245)
 
 # victory
@@ -70,21 +70,22 @@ go_no_outline_color = (237, 172, 166)
 
 # notification overlay
 no_bg_x, no_bg_y = 0, 0
-no_bg_w = window_width*2
-no_bg_h = window_height*2
+no_bg_w = window_width*scale
+no_bg_h = window_height*scale
 no_bg_color = (4, 5, 12, 180)
-no_outline_w = field_width - 19.2*2
-no_outline_h = field_height - field_height // 2
-no_outline_x = field_x + 19.2
-no_outline_y = field_y + field_height - no_outline_h - 19.2
+no_outline_w = field_width - 9.6 * 2 * scale
+no_outline_h = field_height / 2
+no_outline_x = field_x + 9.6 * scale
+no_outline_y = field_y + field_height - no_outline_h - 9.6 * scale
 no_outline_color = (161, 172, 255)
-no_x = no_outline_x + 19.2
-no_y = no_outline_y + 19.2
-no_width = no_outline_w - 19.2*2
-no_height = no_outline_h - 19.2*2
+no_x = no_outline_x + 9.6 * scale
+no_y = no_outline_y + 9.6 * scale
+no_width = no_outline_w - 9.6 * 2 * scale
+no_height = no_outline_h - 9.6 * 2 * scale
 no_color = (220, 225, 250)
 no_text_x = no_x + no_width // 2
 no_text_y = no_y + no_height // 2
+no_text_size = 36 * scale
 no_text_color = (56, 73, 255)
 
 # buttons
@@ -92,19 +93,19 @@ no_button_x = no_outline_x + no_outline_w // 12
 no_button_y = no_outline_y - no_outline_h // 3 * 1.3
 no_button_w = no_outline_w - no_outline_w // 6
 no_button_h = no_outline_h // 3
-no_button_outline_thickness = 19.2
+no_button_outline_thickness = 9.6 * scale
 no_button_outline_color = (161, 172, 255)
 no_button_color = (101, 119, 252)
 no_button_hover_color = (97, 105, 242)
 no_button_pressed_color = (45, 56, 138)
 no_button_text_color = (228, 229, 245)
-no_button_text_size = 86
+no_button_text_size = 36 * scale
 
 
 # font configuration
-font.add_file("NotJamSlab14.ttf")
-public_pixel = font.load("NotJamSlab14")
-font_name = "NotJamSlab14"
+pyglet.font.add_file("Not Jam UI 12.ttf")
+NotJamUI12 = pyglet.font.load("Not Jam UI 12")
+font_name = "Not Jam UI 12"
 
 
 class Button(pyglet.event.EventDispatcher):
@@ -225,7 +226,7 @@ def draw_squares():
                 square.draw()
 
                 sn = str(n)
-                label = pyglet.text.Label(sn, x+15, y+15, font_size=60*(4/y_tiles), font_name=font_name)
+                label = pyglet.text.Label(sn, x+15, y+15, font_size=20*scale*(4/y_tiles), font_name=font_name)
                 label.draw()
 
 
@@ -247,9 +248,9 @@ def draw_no():
     outline.draw()
     gof = shapes.Rectangle(no_x, no_y, no_width, no_height, no_color)
     gof.draw()
-    gof_text = pyglet.text.Label("YOU WON! :)" if victory else "GAME OVER! :(", no_text_x, no_text_y, font_name=font_name, font_size=86, anchor_x="center", color=no_text_color)
+    gof_text = pyglet.text.Label("YOU WON! :)" if victory else "GAME OVER! :(", no_text_x, no_text_y, font_name=font_name, font_size=no_text_size, anchor_x="center", color=no_text_color)
     gof_text.draw()
-    score_text = pyglet.text.Label(f"Score: {score}", no_text_x, no_text_y - no_text_y//10, font_name=font_name, font_size=86, anchor_x="center", color=no_text_color)
+    score_text = pyglet.text.Label(f"Score: {score}", no_text_x, no_text_y - no_text_y//10, font_name=font_name, font_size=no_text_size, anchor_x="center", color=no_text_color)
     score_text.draw()
 
 
@@ -287,14 +288,14 @@ def buttons():
         no_button_outline_color
     )
     retry_button = Button(
-            window_width*2-250-30,
-            30,
-            250,
-            100,
+            window_width*scale-125*scale-15*scale,
+            15 * scale,
+            125*scale,
+            50 * scale,
             restart,
             "Retry",
             no_button_text_color,
-            38,
+            19*scale,
             font_name,
             no_button_color,
             no_button_hover_color,
@@ -396,8 +397,7 @@ def continue_():
 
 
 def main():
-    window = pyglet.window.Window(window_width, window_height, caption=window_title, resizable=False)
-
+    global window
     gl.glClearColor(*map(lambda x: x*(1/255), window_bg))
     gl.glEnable(gl.GL_BLEND)
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
