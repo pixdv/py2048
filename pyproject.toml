@@ -1,6 +1,6 @@
 [project]
 name = "py2048"
-version = "0.2.1"
+version = "0.3.0"
 description = "Python 2048 game"
 readme = "README.md"
 license = "MIT"
