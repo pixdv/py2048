@@ -1,9 +1,11 @@
-import pyglet
-from pyglet import shapes
-from pyglet import gl
-from pyglet.window import key, mouse
-from random import randint
 from itertools import chain
+from random import randint, seed
+from string import printable
+
+import numpy as np
+import pyglet
+from pyglet import gl, shapes
+from pyglet.window import key, mouse
 
 # window configuration
 window_width = 600
@@ -32,21 +34,24 @@ tiles_cords = [[] for _ in range(x_tiles)]
 
 # squares configuration
 square_width, square_height = tile_width, tile_height
-squares_matrix = [[0 for _ in range(x_tiles)] for _ in range(y_tiles)]
 squares_colors = {2: (105, 112, 245), 4: (64, 73, 245), 6: (7, 14, 148), 8: (20, 31, 250)}
-
 
 # controls
 moves = {
-    key.UP: "up",
-    key.DOWN: "down",
-    key.LEFT: "left",
-    key.RIGHT: "right"
+    key.UP: 0,
+    key.DOWN: 1,
+    key.LEFT: 2,
+    key.RIGHT: 3
 }
 
+directions = {
+    0: "up",
+    1: "down",
+    2: "left",
+    3: "right"
+}
 
 # score
-score = 0
 score_x = field_x + 75//6*scale
 score_y = field_y - 37.5*scale
 score_color = (133, 151, 242)
@@ -60,12 +65,9 @@ title_font_size = 59 * scale
 title_color = (81, 105, 245)
 
 # victory
-victory = False
-won = False
 victory_no_outline_color = (184, 224, 206)
 
 # game over
-game_over = False
 go_no_outline_color = (237, 172, 166)
 
 # notification overlay
@@ -101,29 +103,135 @@ no_button_pressed_color = (45, 56, 138)
 no_button_text_color = (228, 229, 245)
 no_button_text_size = 36 * scale
 
-
 # font configuration
 pyglet.font.add_file("NotJamUI12.ttf")
 NotJamUI12 = pyglet.font.load("Not Jam UI 12")
 font_name = "Not Jam UI 12"
 
 
+class Game:
+    def __init__(self):
+        self.score = 0
+        self.field_size = (4, 4)
+        self.field = np.zeros((self.field_size[0], self.field_size[1]))
+
+        self.victory = False
+        self.won = False
+        self.game_over = False
+
+        self.__add_squares(2)
+
+    def __add_squares(self, amount):
+        available_cords = self.field_size[0] * self.field_size[1] - np.count_nonzero(self.field)
+        if not available_cords:
+            return
+        elif available_cords < amount:
+            amount = available_cords
+        for _ in range(amount):
+            r, c = randint(0, self.field_size[0] - 1), randint(0, self.field_size[1] - 1)
+            while self.field[r, c] != 0:
+                r, c = randint(0, self.field_size[0] - 1), randint(0, self.field_size[1] - 1)
+            self.field[r, c] = 4 if randint(1, 10) == 10 else 2
+
+    def reset(self):
+        self.field = np.zeros((self.field_size[0], self.field_size[1]))
+        self.score = 0
+
+        self.victory = False
+        self.won = False
+        self.game_over = False
+
+        self.__add_squares(2)
+
+    def move(self, direction):
+        direction = directions.get(direction, None)
+        if direction is None: return
+        moved = False
+        match direction:
+            case "left":
+                pass
+            case "right":
+                self.field = np.flip(self.field, 1)
+            case "up":
+                self.field = np.rot90(self.field, 1, (0, 1))
+            case "down":
+                self.field = np.rot90(self.field, 1, (1, 0))
+            case _:
+                return
+        for y, row in enumerate(self.field):
+            changed = []
+            for x, n in enumerate(row):
+                if x and n:
+                    cx = x
+                    while cx and not row[cx - 1]:
+                        row[cx] = 0
+                        row[cx - 1] = n
+                        cx -= 1
+                        if not moved:
+                            moved = True
+                    if cx and cx - 1 not in changed and row[cx - 1] == n:
+                        row[cx - 1] *= 2
+                        row[cx] = 0
+                        self.score += row[cx - 1]
+                        cx -= 1
+                        changed.append(cx)
+                        if not moved:
+                            moved = True
+            self.field[y] = row
+        match direction:
+            case "left":
+                pass
+            case "right":
+                self.field = np.flip(self.field, 1)
+            case "up":
+                self.field = np.rot90(self.field, 1, (1, 0))
+            case "down":
+                self.field = np.rot90(self.field, 1, (0, 1))
+        if moved:
+            self.__add_squares(1)
+
+    def is_over(self, _=None):
+        if not self.field_size[0] * self.field_size[1] - np.count_nonzero(self.field):
+            for row in self.field:
+                for i, s in enumerate(row):
+                    if i and row[i - 1] == s or i < x_tiles - 1 and row[i + 1] == s:
+                        return False
+            for row in np.rot90(self.field, 1, (0, 1)):
+                for i, s in enumerate(row):
+                    if i and row[i - 1] == s or i < x_tiles - 1 and row[i + 1] == s:
+                        return False
+            self.game_over = True
+            return True
+        return False
+
+    def get_biggest_square(self):
+        return self.field.max()
+
+    def continue_game(self):
+        self.victory = False
+        self.won = True
+
+    def check_2048(self, _=None):
+        if self.get_biggest_square() >= 2048 and not self.won and not self.victory:
+            self.victory = True
+
+
 class Button(pyglet.event.EventDispatcher):
     def __init__(
             self,
-            x, 
-            y, 
-            width, 
+            x,
+            y,
+            width,
             height,
             func,
-            text, 
-            text_color, 
-            font_size, 
-            font, 
-            color, 
-            hover_color, 
-            pressed_color, 
-            outline, 
+            text,
+            text_color,
+            font_size,
+            font,
+            color,
+            hover_color,
+            pressed_color,
+            outline,
             outline_color
         ):
         super().__init__()
@@ -142,7 +250,7 @@ class Button(pyglet.event.EventDispatcher):
         self.pressed_color = pressed_color or color
         self.outline = outline or 0
         self.outline_color = outline_color
-        
+
         self.active = False
 
         self.outline_shape = shapes.Rectangle(x, y, width, height, color=outline_color)
@@ -200,38 +308,22 @@ def draw_tiles():
             tiles_cords[xn].append((x, y))
 
 
-def summon_squares(amount):
-    global squares_matrix
-    available_cords = list(chain(*squares_matrix)).count(0)
-    if not available_cords:
-        return
-    elif available_cords < amount:
-        amount = available_cords
-    for _ in range(amount):
-        cords = (randint(0, x_tiles-1), randint(0, y_tiles-1))
-        while squares_matrix[cords[0]][cords[1]]:
-            cords = (randint(0, x_tiles-1), randint(0, y_tiles-1))
-
-        n = 4 if randint(1, 10) == 5 else 2
-        squares_matrix[cords[0]][cords[1]] = n
-
-
-def draw_squares():
-    for my, row in enumerate(squares_matrix[::-1]):
-        for mx, n in enumerate(row):
+def draw_squares(game: Game):
+    for mx, row in enumerate(game.field[::-1]):
+        for my, n in enumerate(row):
             if n:
                 x, y = tiles_cords[my][mx]
                 square_color = squares_colors.get(n%10, (0, 0, 0))
                 square = shapes.Rectangle(x, y, square_width, square_height, color=square_color)
                 square.draw()
 
-                sn = str(n)
+                sn = str(int(n))
                 label = pyglet.text.Label(sn, x+15, y+15, font_size=20*scale*(4/y_tiles), font_name=font_name)
                 label.draw()
 
 
-def draw_score():
-    score_label = pyglet.text.Label(f"Score: {score}", score_x, score_y, font_size=score_font_size, font_name=font_name, color=score_color, anchor_y="center")
+def draw_score(game: Game):
+    score_label = pyglet.text.Label(f"Score: {int(game.score)}", score_x, score_y, font_size=score_font_size, font_name=font_name, color=score_color, anchor_y="center")
     score_label.draw()
 
 
@@ -240,7 +332,7 @@ def draw_title():
     title_label.draw()
 
 
-def draw_no():
+def draw_no(game):
     batch = pyglet.graphics.Batch()
     gof_bg = shapes.Rectangle(no_bg_x, no_bg_y, no_bg_w, no_bg_h, no_bg_color, batch=batch)
     gof_bg.draw()
@@ -248,19 +340,19 @@ def draw_no():
     outline.draw()
     gof = shapes.Rectangle(no_x, no_y, no_width, no_height, no_color)
     gof.draw()
-    gof_text = pyglet.text.Label("YOU WON! :)" if victory else "GAME OVER! :(", no_text_x, no_text_y, font_name=font_name, font_size=no_text_size, anchor_x="center", color=no_text_color)
+    gof_text = pyglet.text.Label("YOU WON! :)" if game.victory else "GAME OVER! :(", no_text_x, no_text_y, font_name=font_name, font_size=no_text_size, anchor_x="center", color=no_text_color)
     gof_text.draw()
-    score_text = pyglet.text.Label(f"Score: {score}", no_text_x, no_text_y - no_text_y//10, font_name=font_name, font_size=no_text_size, anchor_x="center", color=no_text_color)
+    score_text = pyglet.text.Label(f"Score: {int(game.score)}", no_text_x, no_text_y - no_text_y//10, font_name=font_name, font_size=no_text_size, anchor_x="center", color=no_text_color)
     score_text.draw()
 
 
-def buttons():
+def buttons(game: Game):
     restart_button = Button(
         no_button_x,
         no_button_y,
         no_button_w,
         no_button_h,
-        restart,
+        game.reset,
         "RESTART",
         no_button_text_color,
         no_button_text_size,
@@ -276,7 +368,7 @@ def buttons():
         no_button_y - no_button_h * 1.2,
         no_button_w,
         no_button_h,
-        continue_,
+        game.continue_game,
         "CONTINUE",
         no_button_text_color,
         no_button_text_size,
@@ -292,7 +384,7 @@ def buttons():
             15 * scale,
             125*scale,
             50 * scale,
-            restart,
+            game.reset,
             "Retry",
             no_button_text_color,
             19*scale,
@@ -306,104 +398,14 @@ def buttons():
     return restart_button, continue_button, retry_button
 
 
-def move(direction):
-    global squares_matrix, score
-    moved = False
-    match direction:
-        case "down":
-            matrix = squares_matrix
-        case "up":
-            matrix = [r[::-1] for r in squares_matrix]
-        case "left":
-            matrix = list(map(list, zip(*squares_matrix[::-1])))
-        case "right":
-            matrix = [list(r) for r in list(zip(*squares_matrix))[::-1]]
-        case _:
-            return
-    for ri, row in enumerate(matrix):
-        changed = []
-        for i, s in enumerate(row):
-            if i and s:
-                ci = i
-                while ci and not row[ci-1]:
-                    row[ci] = 0
-                    row[ci-1] = s
-                    ci-=1
-                    if not moved:
-                        moved = True
-                else:
-                    if ci and ci-1 not in changed and row[ci-1] == s:
-                        row[ci] = 0
-                        row[ci-1] *= 2
-                        score += row[ci-1]
-                        ci-=1
-                        changed.append(ci)
-                        if not moved:
-                            moved = True
-        matrix[ri] = row
-    match direction:
-        case "down":
-            squares_matrix = matrix
-        case "up":
-            squares_matrix = [r[::-1] for r in matrix]
-        case "left":
-            squares_matrix = [list(r) for r in list(zip(*matrix))[::-1]]
-        case "right":
-            squares_matrix = list(map(list, zip(*matrix[::-1])))
-    if moved:
-        summon_squares(1)
-
-
-def check_2048(_):
-    global victory
-    if not victory and not won:
-        if 2048 in list(chain(*squares_matrix)):
-            victory = True
-
-
-def check_available_moves(_):
-    global game_over
-    available = False
-    if not list(chain(*squares_matrix)).count(0):
-        for row in squares_matrix:
-            for i, s in enumerate(row):
-                if i and row[i-1] == s or i < x_tiles-1 and row[i+1] == s:
-                    available = True
-                    break
-        if not available:
-            for row in list(map(list, zip(*squares_matrix[::-1]))):
-                for i, s in enumerate(row):
-                    if i and row[i-1] == s or i < x_tiles-1 and row[i+1] == s:
-                        available = True
-                        break
-        if not available:
-            game_over = True
-
-
-def restart():
-    global squares_matrix, tiles_cords, score, game_over, victory, won
-    squares_matrix, tiles_cords = [[0 for _ in range(x_tiles)] for _ in range(y_tiles)], [[] for _ in range(x_tiles)]
-    score = 0
-    game_over = False
-    victory = False
-    won = False
-    summon_squares(2)
-
-
-def continue_():
-    global victory, won
-    victory = False
-    won = True
-
-
 def main():
-    global window
-    gl.glClearColor(*map(lambda x: x*(1/255), window_bg))
+    game = Game()
+
+    gl.glClearColor(*[c*(1/255) for c in window_bg])
     gl.glEnable(gl.GL_BLEND)
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-    summon_squares(2)
 
-    restart_button, continue_button, retry_button = buttons()
+    restart_button, continue_button, retry_button = buttons(game)
 
     window.push_handlers(
     on_mouse_motion=retry_button.on_mouse_motion,
@@ -422,22 +424,22 @@ def main():
             on_mouse_press=restart_button.on_mouse_press,
             on_mouse_release=restart_button.on_mouse_release
     )
-    
+
     @window.event
     def on_draw():
         window.clear()
         draw_title()
         draw_field()
         draw_tiles()
-        draw_squares()
-        draw_score()
+        draw_squares(game)
+        draw_score(game)
         retry_button.draw()
-        if victory or game_over:
+        if game.victory or game.game_over:
             retry_button.active = False
-            draw_no()
+            draw_no(game)
             restart_button.active = True
             restart_button.draw()
-            if victory:
+            if game.victory:
                 continue_button.active = True
                 continue_button.draw()
         else:
@@ -445,13 +447,14 @@ def main():
 
     @window.event
     def on_key_press(symbol, _):
-        if not game_over and not victory and moves.get(symbol, None):
-            move(moves.get(symbol, None))
+        if not game.game_over and not game.victory:
+            game.move(moves.get(symbol, 4))
+            print("[-----[FIELD]-----]")
+            print(game.field)
 
-    pyglet.clock.schedule_interval(check_2048, 0.5)
-    pyglet.clock.schedule_interval(check_available_moves, 1)
+    pyglet.clock.schedule_interval(game.check_2048, 0.5)
+    pyglet.clock.schedule_interval(game.is_over, 1)
 
-    
     pyglet.app.run()
 
 
