@@ -1,6 +1,5 @@
 from itertools import chain
-from random import randint, seed
-from string import printable
+from random import randint
 
 import numpy as np
 import pyglet
@@ -449,8 +448,6 @@ def main():
     def on_key_press(symbol, _):
         if not game.game_over and not game.victory:
             game.move(moves.get(symbol, 4))
-            print("[-----[FIELD]-----]")
-            print(game.field)
 
     pyglet.clock.schedule_interval(game.check_2048, 0.5)
     pyglet.clock.schedule_interval(game.is_over, 1)
